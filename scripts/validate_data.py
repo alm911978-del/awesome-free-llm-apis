@@ -73,14 +73,19 @@ def main() -> None:
                 continue
             model_id = model.get("id")
             model_name = model.get("name")
-            if not isinstance(model_id, str) or not model_id.strip():
-                errors.append(f"{model_label}.id must be a non-empty string")
+            if not isinstance(model_name, str) or not model_name.strip():
+                errors.append(f"{model_label}.name must be a non-empty string")
+            # Some providers intentionally summarize a long catalogue with entries
+            # such as "+ 55 more models"; those aggregate rows have no concrete ID.
+            is_summary_row = isinstance(model_name, str) and model_name.strip().startswith("+ ")
+            if model_id is None and is_summary_row:
+                pass
+            elif not isinstance(model_id, str) or not model_id.strip():
+                errors.append(f"{model_label}.id must be a non-empty string unless this is a summary row")
             elif model_id.casefold() in model_ids:
                 errors.append(f"{label} has duplicate model id: {model_id}")
             else:
                 model_ids.add(model_id.casefold())
-            if not isinstance(model_name, str) or not model_name.strip():
-                errors.append(f"{model_label}.name must be a non-empty string")
             total_models += 1
 
     if errors:
