@@ -38,8 +38,6 @@ def main() -> None:
         except (UnicodeDecodeError, OSError):
             continue
         for number, line in enumerate(text.splitlines(), start=1):
-            if PLACEHOLDER.search(line):
-                continue
             for label, pattern in SECRET_PATTERNS:
                 if pattern.search(line):
                     findings.append(f"{path.relative_to(ROOT)}:{number}: possible {label}")
