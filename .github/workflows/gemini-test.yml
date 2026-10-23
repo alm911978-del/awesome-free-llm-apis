@@ -3,6 +3,9 @@ name: Test Gemini API Connection
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test-gemini:
     runs-on: ubuntu-latest
@@ -11,7 +14,12 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}" \
-          -H "Content-Type: application/json" \
-          -d '{"contents": [{"parts": [{"text": "Hello, respond with SUCCESS if working."}]}]}'
-
+          set -euo pipefail
+          response=$(curl --fail-with-body --silent --show-error \
+            -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent" \
+            -H "x-goog-api-key: ${GEMINI_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{"contents":[{"parts":[{"text":"Reply with exactly: NEXUS_GEMINI_OK"}]}]}')
+          echo "$response" | jq -e -r '.candidates[0].content.parts[0].text' > /tmp/gemini-result.txt
+          echo "Gemini API request succeeded."
+          cat /tmp/gemini-result.txt
