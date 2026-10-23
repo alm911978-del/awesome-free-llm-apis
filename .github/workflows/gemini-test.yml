@@ -6,12 +6,26 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: gemini-api-smoke-test
+  cancel-in-progress: true
+
 jobs:
   test-gemini:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Test Gemini API
+      - name: Validate secret availability
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${GEMINI_API_KEY:-}" ]]; then
+            echo "::error::Repository secret GEMINI_API_KEY is missing or empty."
+            exit 1
+          fi
+
+      - name: Call Gemini and validate response
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
@@ -20,7 +34,12 @@ jobs:
             -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent" \
             -H "x-goog-api-key: ${GEMINI_API_KEY}" \
             -H "Content-Type: application/json" \
-            -d '{"contents":[{"parts":[{"text":"Reply with exactly: NEXUS_GEMINI_OK"}]}]}')
-          echo "$response" | jq -e -r '.candidates[0].content.parts[0].text' > /tmp/gemini-result.txt
-          echo "Gemini API request succeeded."
-          cat /tmp/gemini-result.txt
+            -d '{"contents":[{"parts":[{"text":"Reply with exactly: NEXUS_GEMINI_OK"}]}],"generationConfig":{"temperature":0,"maxOutputTokens":32}}')
+          actual=$(printf '%s' "$response" | jq -er '.candidates[0].content.parts | map(select(has("text"))) | map(.text) | join("")')
+          if [[ "$actual" != "NEXUS_GEMINI_OK" ]]; then
+            echo "::error::Gemini responded, but the smoke-test marker did not match."
+            echo "Returned text: $actual"
+            exit 1
+          fi
+          echo "Gemini API request and response validation succeeded."
+          echo "$actual"
