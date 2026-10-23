@@ -348,3 +348,8 @@ This repository includes lightweight automated checks for the structured catalog
 - The **Test Gemini API Connection** workflow makes a real API request only when manually started. It reads `GEMINI_API_KEY` from GitHub Actions Secrets and checks that the response exactly matches the smoke-test marker. Never place API keys in source files or logs.
 
 These checks verify structure and connectivity, not the ongoing accuracy of every provider's advertised pricing, free quota, model availability, or terms. Review provider documentation before relying on a listing.
+
+
+## Security hygiene
+
+A dependency-free `scripts/security_audit.py` scans tracked files for common Google/GitHub/AWS credential patterns and flags a couple of high-risk workflow configurations. GitHub Actions runs it on relevant changes. This is a lightweight safety net, not a substitute for a dedicated secret scanner, dependency review, or rotation of any credential that may have leaked. Dependabot is enabled for GitHub Actions updates.
