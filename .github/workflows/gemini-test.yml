@@ -9,13 +9,14 @@ permissions:
 jobs:
   test-gemini:
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     steps:
       - name: Test Gemini API
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           set -euo pipefail
-          response=$(curl --fail-with-body --silent --show-error \
+          response=$(curl --fail-with-body --silent --show-error --max-time 30 \
             -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent" \
             -H "x-goog-api-key: ${GEMINI_API_KEY}" \
             -H "Content-Type: application/json" \
