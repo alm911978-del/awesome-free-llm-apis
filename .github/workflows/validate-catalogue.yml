@@ -1,6 +1,8 @@
 name: Validate API Catalogue
 
 on:
+  schedule:
+    - cron: "17 7 * * 1"
   push:
     paths:
       - "data.json"
