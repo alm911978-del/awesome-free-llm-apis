@@ -100,6 +100,8 @@ const footnoteLines = data.footnotes
 const parts = [
 	HEADER,
 	'',
+	`> Catalogue data last updated: **${data.lastUpdated}**. Free-tier limits and model availability can change; verify each provider's official documentation before use.`,
+	'',
 	'## Contents',
 	'',
 	'- [Provider APIs](#provider-apis)',
