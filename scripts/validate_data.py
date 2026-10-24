@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+from datetime import date
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -26,8 +27,15 @@ def main() -> None:
 
     if not isinstance(data, dict):
         fail("Top-level JSON value must be an object.")
-    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(data.get("lastUpdated", ""))):
+
+    updated = data.get("lastUpdated")
+    if not isinstance(updated, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", updated):
         fail("lastUpdated must use YYYY-MM-DD format.")
+    try:
+        if date.fromisoformat(updated).isoformat() != updated:
+            fail("lastUpdated must be a valid calendar date in YYYY-MM-DD format.")
+    except ValueError:
+        fail("lastUpdated must be a valid calendar date in YYYY-MM-DD format.")
 
     providers = data.get("providers")
     if not isinstance(providers, list) or not providers:
