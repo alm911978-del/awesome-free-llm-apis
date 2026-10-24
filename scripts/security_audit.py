@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Small dependency-free secret and workflow-risk audit for this repository."""
+"""Dependency-free secret and workflow-risk audit for this repository."""
 from __future__ import annotations
 
 import re
@@ -15,6 +15,7 @@ SECRET_PATTERNS = [
     ("Private key PEM", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----")),
 ]
 PLACEHOLDER = re.compile(r"(?:YOUR[_ -]?KEY|REPLACE[_ -]?ME|EXAMPLE|PLACEHOLDER|\$\{\{\s*secrets\.)", re.I)
+ACTION_USE = re.compile(r"(?m)^\s*-\s*uses:\s*([^\s#]+)")
 
 
 def tracked_files() -> list[Path]:
@@ -47,13 +48,28 @@ def main() -> None:
                 findings.append(f"{relative}: avoid permissions: write-all; grant only required permissions")
             if re.search(r"(?m)^\s*pull_request_target\s*:", text):
                 findings.append(f"{relative}: review pull_request_target carefully for untrusted code execution")
+            for match in ACTION_USE.finditer(text):
+                action_ref = match.group(1)
+                if action_ref.startswith("./"):
+                    continue
+                if "@" not in action_ref:
+                    findings.append(f"{relative}: action reference has no version or SHA: {action_ref}")
+                    continue
+                revision = action_ref.rsplit("@", 1)[1]
+                if not re.fullmatch(r"[0-9a-fA-F]{40}", revision):
+                    findings.append(
+                        f"{relative}: third-party action is not pinned to a full 40-character commit SHA: {action_ref}"
+                    )
 
     if findings:
         print("Security audit found items requiring review:")
         for finding in findings:
             print(f"- {finding}")
         raise SystemExit(1)
-    print(f"Security audit passed: scanned {len(files)} tracked files; no known secret patterns or flagged workflow settings found.")
+    print(
+        f"Security audit passed: scanned {len(files)} tracked files; "
+        "no known secret patterns or flagged workflow settings found, and external Actions are SHA-pinned."
+    )
 
 
 if __name__ == "__main__":
