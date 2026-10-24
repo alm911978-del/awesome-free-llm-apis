@@ -31,6 +31,8 @@
 
 <hr>
 
+> Catalogue data last updated: **2026-10-05**. Free-tier limits and model availability can change; verify each provider's official documentation before use.
+
 ## Contents
 
 - [Provider APIs](#provider-apis)
