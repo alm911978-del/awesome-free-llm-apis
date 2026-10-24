@@ -3,7 +3,7 @@ name: Generate README
 on:
   push:
     branches: [main]
-    paths: ['data.json']
+    paths: ['data.json', 'scripts/generate-readme.js', '.github/workflows/generate-readme.yml']
 
 permissions:
   contents: read
