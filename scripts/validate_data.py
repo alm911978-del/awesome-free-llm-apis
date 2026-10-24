@@ -32,10 +32,21 @@ def main() -> None:
     if not isinstance(updated, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", updated):
         fail("lastUpdated must use YYYY-MM-DD format.")
     try:
-        if date.fromisoformat(updated).isoformat() != updated:
+        updated_date = date.fromisoformat(updated)
+        if updated_date.isoformat() != updated:
             fail("lastUpdated must be a valid calendar date in YYYY-MM-DD format.")
     except ValueError:
         fail("lastUpdated must be a valid calendar date in YYYY-MM-DD format.")
+
+    age_days = (date.today() - updated_date).days
+    if age_days < 0:
+        fail("lastUpdated cannot be in the future.")
+    max_age_days = 30
+    if age_days > max_age_days:
+        fail(
+            f"Catalogue data is {age_days} days old (maximum {max_age_days}). "
+            "Re-check provider/model availability and free-tier terms before updating lastUpdated."
+        )
 
     providers = data.get("providers")
     if not isinstance(providers, list) or not providers:
@@ -101,7 +112,7 @@ def main() -> None:
             print(f"ERROR: {error}", file=sys.stderr)
         raise SystemExit(1)
 
-    print(f"Catalogue validation passed: {len(providers)} providers, {total_models} models.")
+    print(f"Catalogue validation passed: {len(providers)} providers, {total_models} models; lastUpdated is {age_days} days old.")
 
 
 if __name__ == "__main__":
