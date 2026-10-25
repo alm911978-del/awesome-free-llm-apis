@@ -1,35 +1,61 @@
-name: Generate README
+name: Generate README via Pull Request
 
 on:
   push:
     branches: [main]
-    paths: ['data.json', 'scripts/generate-readme.js', '.github/workflows/generate-readme.yml']
+    paths:
+      - 'data.json'
+      - 'scripts/generate-readme.js'
+      - '.github/workflows/generate-readme.yml'
 
 permissions:
   contents: read
+
+concurrency:
+  group: readme-sync
+  cancel-in-progress: true
 
 jobs:
   generate:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    timeout-minutes: 3
+      pull-requests: write
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - name: Check out main commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
       - name: Generate README
         run: node scripts/generate-readme.js
-      - name: Commit changes
+      - name: Open or update README pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add README.md
-          if ! git diff --cached --quiet; then
-            git commit -m "docs: regenerate README from data.json"
-            git push
-          else
+          if git diff --cached --quiet; then
             echo "README is already up to date."
+            exit 0
+          fi
+
+          branch="automation/readme-sync"
+          git switch --create "$branch"
+          git commit -m "docs: regenerate README from data.json"
+          git push --force origin "HEAD:$branch"
+
+          title="docs: sync README from catalogue"
+          body="Automated README refresh generated from data.json and scripts/generate-readme.js. Please review the catalogue and generated output before merging."
+          if gh pr view "$branch" >/dev/null 2>&1; then
+            gh pr edit "$branch" --title "$title" --body "$body"
+          else
+            gh pr create --base main --head "$branch" --title "$title" --body "$body"
           fi
